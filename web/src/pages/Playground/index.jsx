@@ -59,6 +59,7 @@ import {
 } from '../../components/playground/OptimizedComponents';
 import ChatArea from '../../components/playground/ChatArea';
 import FloatingButtons from '../../components/playground/FloatingButtons';
+import MessageEditDialog from '../../components/playground/MessageEditDialog';
 import { PlaygroundProvider } from '../../contexts/PlaygroundContext';
 
 // 生成头像
@@ -135,6 +136,7 @@ const Playground = () => {
   // 消息编辑
   const {
     editingMessageId,
+    editingMessage,
     editValue,
     setEditValue,
     handleMessageEdit,
@@ -345,31 +347,16 @@ const Playground = () => {
   // 渲染函数
   const renderCustomChatContent = useCallback(
     ({ message, className }) => {
-      const isCurrentlyEditing = editingMessageId === message.id;
-
       return (
         <OptimizedMessageContent
           message={message}
           className={className}
           styleState={styleState}
           onToggleReasoningExpansion={toggleReasoningExpansion}
-          isEditing={isCurrentlyEditing}
-          onEditSave={handleEditSave}
-          onEditCancel={handleEditCancel}
-          editValue={editValue}
-          onEditValueChange={setEditValue}
         />
       );
     },
-    [
-      styleState,
-      editingMessageId,
-      editValue,
-      handleEditSave,
-      handleEditCancel,
-      setEditValue,
-      toggleReasoningExpansion,
-    ],
+    [styleState, toggleReasoningExpansion],
   );
 
   const renderChatBoxAction = useCallback(
@@ -378,7 +365,6 @@ const Playground = () => {
       const isAnyMessageGenerating = message.some(
         (msg) => msg.status === 'loading' || msg.status === 'incomplete',
       );
-      const isCurrentlyEditing = editingMessageId === currentMessage.id;
 
       return (
         <OptimizedMessageActions
@@ -390,7 +376,7 @@ const Playground = () => {
           onRoleToggle={messageActions.handleRoleToggle}
           onMessageEdit={handleMessageEdit}
           isAnyMessageGenerating={isAnyMessageGenerating}
-          isEditing={isCurrentlyEditing}
+          isEditing={Boolean(editingMessageId)}
         />
       );
     },
@@ -607,6 +593,15 @@ const Playground = () => {
               showDebugPanel={showDebugPanel}
               onToggleSettings={() => setShowSettings(!showSettings)}
               onToggleDebugPanel={() => setShowDebugPanel(!showDebugPanel)}
+            />
+            <MessageEditDialog
+              visible={Boolean(editingMessageId)}
+              message={editingMessage}
+              editValue={editValue}
+              onEditValueChange={setEditValue}
+              onSave={handleEditSave}
+              onCancel={handleEditCancel}
+              isMobile={isMobile}
             />
           </Layout.Content>
         </Layout>

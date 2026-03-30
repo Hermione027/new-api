@@ -18,10 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useRef, useEffect } from 'react';
-import { Typography, TextArea, Button } from '@douyinfe/semi-ui';
+import { Typography } from '@douyinfe/semi-ui';
 import MarkdownRenderer from '../common/markdown/MarkdownRenderer';
 import ThinkingContent from './ThinkingContent';
-import { Loader2, Check, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MessageContent = ({
@@ -29,11 +29,6 @@ const MessageContent = ({
   className,
   styleState,
   onToggleReasoningExpansion,
-  isEditing = false,
-  onEditSave,
-  onEditCancel,
-  editValue,
-  onEditValueChange,
 }) => {
   const { t } = useTranslation();
   const previousContentLengthRef = useRef(0);
@@ -216,156 +211,114 @@ const MessageContent = ({
         />
       )}
 
-      {isEditing ? (
-        <div className='space-y-3'>
-          <TextArea
-            value={editValue}
-            onChange={(value) => onEditValueChange(value)}
-            placeholder={t('请输入消息内容...')}
-            autosize={{ minRows: 3, maxRows: 12 }}
-            style={{
-              resize: 'vertical',
-              fontSize: styleState.isMobile ? '14px' : '15px',
-              lineHeight: '1.6',
-            }}
-            className='!border-blue-200 focus:!border-blue-400 !bg-blue-50/50'
-          />
-          <div className='flex items-center gap-2 w-full'>
-            <Button
-              size='small'
-              type='danger'
-              theme='light'
-              icon={<X size={14} />}
-              onClick={onEditCancel}
-              className='flex-1'
-            >
-              {t('取消')}
-            </Button>
-            <Button
-              size='small'
-              type='warning'
-              theme='solid'
-              icon={<Check size={14} />}
-              onClick={onEditSave}
-              disabled={!editValue || editValue.trim() === ''}
-              className='flex-1'
-            >
-              {t('保存')}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        (() => {
-          if (Array.isArray(message.content)) {
-            const textContent = message.content.find(
-              (item) => item.type === 'text',
-            );
-            const imageContents = message.content.filter(
-              (item) => item.type === 'image_url',
-            );
+      {(() => {
+        if (Array.isArray(message.content)) {
+          const textContent = message.content.find(
+            (item) => item.type === 'text',
+          );
+          const imageContents = message.content.filter(
+            (item) => item.type === 'image_url',
+          );
 
-            return (
-              <div>
-                {imageContents.length > 0 && (
-                  <div className='mb-3 space-y-2'>
-                    {imageContents.map((imgItem, index) => (
-                      <div key={index} className='max-w-sm'>
-                        <img
-                          src={imgItem.image_url.url}
-                          alt={`用户上传的图片 ${index + 1}`}
-                          className='rounded-lg max-w-full h-auto shadow-sm border'
-                          style={{ maxHeight: '300px' }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'block';
-                          }}
-                        />
-                        <div
-                          className='text-red-500 text-sm p-2 bg-red-50 rounded-lg border border-red-200'
-                          style={{ display: 'none' }}
-                        >
-                          图片加载失败: {imgItem.image_url.url}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {textContent &&
-                  textContent.text &&
-                  typeof textContent.text === 'string' &&
-                  textContent.text.trim() !== '' && (
-                    <div
-                      className={`prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm ${message.role === 'user' ? 'user-message' : ''}`}
-                    >
-                      <MarkdownRenderer
-                        content={textContent.text}
-                        className={
-                          message.role === 'user' ? 'user-message' : ''
-                        }
-                        animated={false}
-                        previousContentLength={0}
+          return (
+            <div>
+              {imageContents.length > 0 && (
+                <div className='mb-3 space-y-2'>
+                  {imageContents.map((imgItem, index) => (
+                    <div key={index} className='max-w-sm'>
+                      <img
+                        src={imgItem.image_url.url}
+                        alt={`用户上传的图片 ${index + 1}`}
+                        className='rounded-lg max-w-full h-auto shadow-sm border'
+                        style={{ maxHeight: '300px' }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
                       />
+                      <div
+                        className='text-red-500 text-sm p-2 bg-red-50 rounded-lg border border-red-200'
+                        style={{ display: 'none' }}
+                      >
+                        图片加载失败: {imgItem.image_url.url}
+                      </div>
                     </div>
-                  )}
-              </div>
-            );
-          }
+                  ))}
+                </div>
+              )}
 
-          if (typeof message.content === 'string') {
-            if (message.role === 'assistant') {
-              if (
-                finalDisplayableFinalContent &&
-                finalDisplayableFinalContent.trim() !== ''
-              ) {
-                // 获取上一次的内容长度
-                let prevLength = 0;
-                if (isThinkingStatus && lastContentRef.current) {
-                  // 只有当前内容包含上一次内容时，才使用上一次的长度
-                  if (
-                    finalDisplayableFinalContent.startsWith(
-                      lastContentRef.current,
-                    )
-                  ) {
-                    prevLength = lastContentRef.current.length;
-                  }
-                }
-
-                // 更新最后内容的引用
-                if (isThinkingStatus) {
-                  lastContentRef.current = finalDisplayableFinalContent;
-                }
-
-                return (
-                  <div className='prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm'>
+              {textContent &&
+                textContent.text &&
+                typeof textContent.text === 'string' &&
+                textContent.text.trim() !== '' && (
+                  <div
+                    className={`prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm ${message.role === 'user' ? 'user-message' : ''}`}
+                  >
                     <MarkdownRenderer
-                      content={finalDisplayableFinalContent}
-                      className=''
-                      animated={isThinkingStatus}
-                      previousContentLength={prevLength}
+                      content={textContent.text}
+                      className={message.role === 'user' ? 'user-message' : ''}
+                      animated={false}
+                      previousContentLength={0}
                     />
                   </div>
-                );
+                )}
+            </div>
+          );
+        }
+
+        if (typeof message.content === 'string') {
+          if (message.role === 'assistant') {
+            if (
+              finalDisplayableFinalContent &&
+              finalDisplayableFinalContent.trim() !== ''
+            ) {
+              // 获取上一次的内容长度
+              let prevLength = 0;
+              if (isThinkingStatus && lastContentRef.current) {
+                // 只有当前内容包含上一次内容时，才使用上一次的长度
+                if (
+                  finalDisplayableFinalContent.startsWith(
+                    lastContentRef.current,
+                  )
+                ) {
+                  prevLength = lastContentRef.current.length;
+                }
               }
-            } else {
+
+              // 更新最后内容的引用
+              if (isThinkingStatus) {
+                lastContentRef.current = finalDisplayableFinalContent;
+              }
+
               return (
-                <div
-                  className={`prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm ${message.role === 'user' ? 'user-message' : ''}`}
-                >
+                <div className='prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm'>
                   <MarkdownRenderer
-                    content={message.content}
-                    className={message.role === 'user' ? 'user-message' : ''}
-                    animated={false}
-                    previousContentLength={0}
+                    content={finalDisplayableFinalContent}
+                    className=''
+                    animated={isThinkingStatus}
+                    previousContentLength={prevLength}
                   />
                 </div>
               );
             }
+          } else {
+            return (
+              <div
+                className={`prose prose-xs sm:prose-sm prose-gray max-w-none overflow-x-auto text-xs sm:text-sm ${message.role === 'user' ? 'user-message' : ''}`}
+              >
+                <MarkdownRenderer
+                  content={message.content}
+                  className={message.role === 'user' ? 'user-message' : ''}
+                  animated={false}
+                  previousContentLength={0}
+                />
+              </div>
+            );
           }
+        }
 
-          return null;
-        })()
-      )}
+        return null;
+      })()}
     </div>
   );
 };

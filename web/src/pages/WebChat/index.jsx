@@ -81,6 +81,7 @@ import {
   OptimizedMessageContent,
 } from '../../components/playground/OptimizedComponents';
 import CustomInputRender from '../../components/playground/CustomInputRender';
+import MessageEditDialog from '../../components/playground/MessageEditDialog';
 import {
   createWebChatSession,
   deriveWebChatSessionPreview,
@@ -795,6 +796,7 @@ const WebChat = () => {
 
   const {
     editingMessageId,
+    editingMessage,
     editValue,
     setEditValue,
     handleMessageEdit,
@@ -1410,31 +1412,16 @@ const WebChat = () => {
 
   const renderCustomChatContent = useCallback(
     ({ message, className }) => {
-      const isCurrentlyEditing = editingMessageId === message.id;
-
       return (
         <OptimizedMessageContent
           message={message}
           className={className}
           styleState={styleState}
           onToggleReasoningExpansion={toggleReasoningExpansion}
-          isEditing={isCurrentlyEditing}
-          onEditSave={handleEditSave}
-          onEditCancel={handleEditCancel}
-          editValue={editValue}
-          onEditValueChange={setEditValue}
         />
       );
     },
-    [
-      editValue,
-      editingMessageId,
-      handleEditCancel,
-      handleEditSave,
-      setEditValue,
-      styleState,
-      toggleReasoningExpansion,
-    ],
+    [styleState, toggleReasoningExpansion],
   );
 
   const renderChatBoxAction = useCallback(
@@ -1444,7 +1431,6 @@ const WebChat = () => {
           item.status === MESSAGE_STATUS.LOADING ||
           item.status === MESSAGE_STATUS.INCOMPLETE,
       );
-      const isCurrentlyEditing = editingMessageId === message.id;
 
       return (
         <OptimizedMessageActions
@@ -1456,7 +1442,7 @@ const WebChat = () => {
           onRoleToggle={messageActions.handleRoleToggle}
           onMessageEdit={handleMessageEdit}
           isAnyMessageGenerating={isAnyMessageGenerating}
-          isEditing={isCurrentlyEditing}
+          isEditing={Boolean(editingMessageId)}
         />
       );
     },
@@ -1824,6 +1810,15 @@ const WebChat = () => {
         >
           {sidebarContent}
         </SideSheet>
+        <MessageEditDialog
+          visible={Boolean(editingMessageId)}
+          message={editingMessage}
+          editValue={editValue}
+          onEditValueChange={setEditValue}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
+          isMobile={isMobile}
+        />
       </div>
     </PlaygroundProvider>
   );

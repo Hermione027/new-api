@@ -36,14 +36,23 @@ export const useMessageEdit = (
 ) => {
   const { t } = useTranslation();
   const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
   const [editValue, setEditValue] = useState('');
   const editingMessageRef = useRef(null);
 
   const handleMessageEdit = useCallback((targetMessage) => {
     const editableContent = getTextContent(targetMessage);
     setEditingMessageId(targetMessage.id);
+    setEditingMessage(targetMessage);
     editingMessageRef.current = targetMessage;
     setEditValue(editableContent);
+  }, []);
+
+  const handleEditCancel = useCallback(() => {
+    setEditingMessageId(null);
+    setEditingMessage(null);
+    editingMessageRef.current = null;
+    setEditValue('');
   }, []);
 
   const handleEditSave = useCallback(() => {
@@ -60,7 +69,17 @@ export const useMessageEdit = (
         );
       }
 
+      if (messageIndex === -1) {
+        handleEditCancel();
+        return prevMessages;
+      }
+
       const targetMessage = prevMessages[messageIndex];
+      if (!targetMessage) {
+        handleEditCancel();
+        return prevMessages;
+      }
+
       let newContent;
 
       if (Array.isArray(targetMessage.content)) {
@@ -126,12 +145,14 @@ export const useMessageEdit = (
     });
 
     setEditingMessageId(null);
+    setEditingMessage(null);
     editingMessageRef.current = null;
     setEditValue('');
     Toast.success({ content: t('消息已更新'), duration: 2 });
   }, [
     editingMessageId,
     editValue,
+    handleEditCancel,
     t,
     inputs,
     parameterEnabled,
@@ -140,14 +161,9 @@ export const useMessageEdit = (
     saveMessages,
   ]);
 
-  const handleEditCancel = useCallback(() => {
-    setEditingMessageId(null);
-    editingMessageRef.current = null;
-    setEditValue('');
-  }, []);
-
   return {
     editingMessageId,
+    editingMessage,
     editValue,
     setEditValue,
     handleMessageEdit,
