@@ -619,20 +619,6 @@ const WebChat = () => {
     [allModels, availableModelValues],
   );
 
-  const needsAutoModelSwitchHint = useMemo(() => {
-    if (!activeSession?.model || !activeSession?.group) {
-      return false;
-    }
-    return !availableGroupValues.includes(activeSession.group);
-  }, [activeSession?.group, activeSession?.model, availableGroupValues]);
-
-  const needsAutoGroupSwitchHint = useMemo(() => {
-    if (!activeSession?.model || !activeSession?.group) {
-      return false;
-    }
-    return !availableModelValues.includes(activeSession.model);
-  }, [activeSession?.group, activeSession?.model, availableModelValues]);
-
   const styleState = useMemo(() => ({ isMobile }), [isMobile]);
 
   const roleInfo = useMemo(
@@ -969,7 +955,10 @@ const WebChat = () => {
             nextGroupOptions = processGroupsData(
               groupsResult.value.data.data || {},
               userGroup,
-            );
+            ).map((option) => ({
+              ...option,
+              label: option.fullLabel || option.label,
+            }));
             setAllGroups(nextGroupOptions);
           } else {
             showError(groupsResult.value.data.message || t('加载分组失败'));
@@ -1397,12 +1386,6 @@ const WebChat = () => {
         item.value && item.fullLabel && item.fullLabel !== item.value
           ? item.fullLabel
           : null;
-      const statusText =
-        state === 'active'
-          ? t('当前')
-          : state === 'compatible'
-            ? t('可直用')
-            : t('会联动');
 
       return (
         <div
@@ -1421,13 +1404,10 @@ const WebChat = () => {
               ) : null}
             </div>
           </div>
-          <span className={`web-chat-option-status is-${state}`}>
-            {statusText}
-          </span>
         </div>
       );
     },
-    [availableGroupValues, currentInputs.group, t],
+    [availableGroupValues, currentInputs.group],
   );
 
   const renderModelSelectOption = useCallback(
@@ -1437,13 +1417,6 @@ const WebChat = () => {
         currentInputs.model,
         availableModelValues,
       );
-      const statusText =
-        state === 'active'
-          ? t('当前')
-          : state === 'compatible'
-            ? t('可直用')
-            : t('会联动');
-
       return (
         <div
           className={`web-chat-select-option is-${state}`}
@@ -1456,27 +1429,19 @@ const WebChat = () => {
               <Typography.Text strong>{item.value || item.label}</Typography.Text>
             </div>
           </div>
-          <span className={`web-chat-option-status is-${state}`}>
-            {statusText}
-          </span>
         </div>
       );
     },
-    [availableModelValues, currentInputs.model, t],
+    [availableModelValues, currentInputs.model],
   );
 
   const sidebarContent = (
     <div className='h-full flex flex-col'>
       {isMobile ? (
         <div className='flex items-center justify-between gap-3 mb-3'>
-          <div className='min-w-0'>
-            <Typography.Text strong className='text-base'>
-              {t('会话与设置')}
-            </Typography.Text>
-            <Typography.Text type='tertiary' size='small' className='!block mt-1'>
-              {t('切换会话、分组和模型')}
-            </Typography.Text>
-          </div>
+          <Typography.Text strong className='text-base'>
+            {t('会话与设置')}
+          </Typography.Text>
           <Button
             type='primary'
             size='small'
@@ -1489,14 +1454,9 @@ const WebChat = () => {
         </div>
       ) : (
         <div className='flex items-center justify-between gap-3 mb-4'>
-          <div>
-            <Typography.Title heading={5} className='!mb-1'>
-              {t('AI 对话')}
-            </Typography.Title>
-            <Typography.Text type='tertiary'>
-              {t('使用当前登录账号的额度和模型权限')}
-            </Typography.Text>
-          </div>
+          <Typography.Title heading={5} className='!mb-0'>
+            {t('AI 对话')}
+          </Typography.Title>
           <Button
             type='primary'
             icon={<Plus size={14} />}
@@ -1529,17 +1489,6 @@ const WebChat = () => {
               style={{ width: '100%' }}
               className='!rounded-xl'
             />
-            {activeSession?.model && allGroups.length > availableGroupValues.length && (
-              <Typography.Text
-                size='small'
-                type={needsAutoModelSwitchHint ? 'warning' : 'tertiary'}
-                className='!block mt-2'
-              >
-                {needsAutoModelSwitchHint
-                  ? t('切换分组时会自动匹配该分组下可用的模型')
-                  : t('当前模型可用的分组已优先排在前面')}
-              </Typography.Text>
-            )}
           </div>
 
           <div>
@@ -1559,23 +1508,6 @@ const WebChat = () => {
               style={{ width: '100%' }}
               className='!rounded-xl'
             />
-            {activeSession?.group && allModels.length > availableModelValues.length && (
-              <Typography.Text
-                size='small'
-                type={needsAutoGroupSwitchHint ? 'warning' : 'tertiary'}
-                className='!block mt-2'
-              >
-                {needsAutoGroupSwitchHint
-                  ? t('切换模型时会自动匹配该模型可用的分组')
-                  : t('当前分组可用的模型已优先排在前面')}
-              </Typography.Text>
-            )}
-          </div>
-
-          <div className='rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3'>
-            <Typography.Text size='small' type='tertiary'>
-              {t('发送消息时会继续复用站内现有的分发、计费和权限控制逻辑。')}
-            </Typography.Text>
           </div>
         </div>
       </Card>
