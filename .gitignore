@@ -8,6 +8,8 @@ upload
 build
 *.db-journal
 logs
+runtime/
+web/runtime/
 web/dist
 .env
 one-api
