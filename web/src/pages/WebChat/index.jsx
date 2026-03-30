@@ -145,6 +145,177 @@ const getStoredUser = () => {
   }
 };
 
+const getOptionValues = (options = []) =>
+  options
+    .map((option) => option?.value)
+    .filter((value) => value !== undefined && value !== null);
+
+const getAvailableWebChatGroupValues = (
+  selectedModel,
+  groupOptions = [],
+  modelGroupsMap = {},
+) => {
+  const allGroupValues = getOptionValues(groupOptions);
+  if (!selectedModel) {
+    return allGroupValues;
+  }
+
+  const relatedGroups = modelGroupsMap[selectedModel];
+  if (!Array.isArray(relatedGroups) || relatedGroups.length === 0) {
+    return allGroupValues;
+  }
+
+  const relatedGroupSet = new Set(relatedGroups);
+  return allGroupValues.filter((group) => relatedGroupSet.has(group));
+};
+
+const getAvailableWebChatModelValues = (
+  selectedGroup,
+  modelOptions = [],
+  groupModelsMap = {},
+) => {
+  const allModelValues = getOptionValues(modelOptions);
+  if (!selectedGroup) {
+    return allModelValues;
+  }
+
+  const relatedModels = groupModelsMap[selectedGroup];
+  if (!Array.isArray(relatedModels) || relatedModels.length === 0) {
+    return allModelValues;
+  }
+
+  const relatedModelSet = new Set(relatedModels);
+  return allModelValues.filter((model) => relatedModelSet.has(model));
+};
+
+const buildWebChatAvailabilityMaps = ({
+  pricingItems = [],
+  modelOptions = [],
+  groupOptions = [],
+  autoGroups = [],
+}) => {
+  const modelValues = getOptionValues(modelOptions);
+  const groupValues = getOptionValues(groupOptions);
+
+  if (groupValues.length === 1 && groupValues[0] === '') {
+    return {
+      modelGroupsMap: {},
+      groupModelsMap: {},
+    };
+  }
+
+  const modelValueSet = new Set(modelValues);
+  const groupValueSet = new Set(groupValues);
+  const modelGroupsMap = {};
+  const groupModelsMap = {};
+
+  const addRelation = (model, group) => {
+    if (!model || !group) {
+      return;
+    }
+
+    if (!modelGroupsMap[model]) {
+      modelGroupsMap[model] = [];
+    }
+    if (!modelGroupsMap[model].includes(group)) {
+      modelGroupsMap[model].push(group);
+    }
+
+    if (!groupModelsMap[group]) {
+      groupModelsMap[group] = [];
+    }
+    if (!groupModelsMap[group].includes(model)) {
+      groupModelsMap[group].push(model);
+    }
+  };
+
+  pricingItems.forEach((item) => {
+    const modelName = item?.model_name;
+    if (!modelName || !modelValueSet.has(modelName)) {
+      return;
+    }
+
+    const enableGroups = Array.isArray(item?.enable_groups)
+      ? item.enable_groups
+      : [];
+
+    enableGroups.forEach((group) => {
+      if (groupValueSet.has(group)) {
+        addRelation(modelName, group);
+      }
+    });
+
+    if (
+      groupValueSet.has('auto') &&
+      autoGroups.some((group) => enableGroups.includes(group))
+    ) {
+      addRelation(modelName, 'auto');
+    }
+  });
+
+  return {
+    modelGroupsMap,
+    groupModelsMap,
+  };
+};
+
+const resolveWebChatSelection = ({
+  currentModel,
+  currentGroup,
+  modelOptions = [],
+  groupOptions = [],
+  modelGroupsMap = {},
+  groupModelsMap = {},
+}) => {
+  const allModelValues = getOptionValues(modelOptions);
+  const allGroupValues = getOptionValues(groupOptions);
+
+  let nextModel = allModelValues.includes(currentModel)
+    ? currentModel
+    : (allModelValues[0] ?? '');
+  let nextGroup = allGroupValues.includes(currentGroup)
+    ? currentGroup
+    : (allGroupValues[0] ?? '');
+
+  const availableGroupsForModel = getAvailableWebChatGroupValues(
+    nextModel,
+    groupOptions,
+    modelGroupsMap,
+  );
+  if (
+    availableGroupsForModel.length > 0 &&
+    !availableGroupsForModel.includes(nextGroup)
+  ) {
+    nextGroup = availableGroupsForModel[0];
+  }
+
+  const availableModelsForGroup = getAvailableWebChatModelValues(
+    nextGroup,
+    modelOptions,
+    groupModelsMap,
+  );
+  if (
+    availableModelsForGroup.length > 0 &&
+    !availableModelsForGroup.includes(nextModel)
+  ) {
+    nextModel = availableModelsForGroup[0];
+  }
+
+  const finalGroupsForModel = getAvailableWebChatGroupValues(
+    nextModel,
+    groupOptions,
+    modelGroupsMap,
+  );
+  if (finalGroupsForModel.length > 0 && !finalGroupsForModel.includes(nextGroup)) {
+    nextGroup = finalGroupsForModel[0];
+  }
+
+  return {
+    model: nextModel,
+    group: nextGroup,
+  };
+};
+
 const generateAvatarDataUrl = (username) => {
   if (!username) {
     return getLogo();
@@ -345,8 +516,10 @@ const WebChat = () => {
 
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
-  const [models, setModels] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [allModels, setAllModels] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [modelGroupsMap, setModelGroupsMap] = useState({});
+  const [groupModelsMap, setGroupModelsMap] = useState({});
   const [historyVisible, setHistoryVisible] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [debugData, setDebugData] = useState({});
@@ -382,6 +555,30 @@ const WebChat = () => {
     }),
     [activeSession?.group, activeSession?.model],
   );
+
+  const availableGroupOptions = useMemo(() => {
+    const availableGroupValues = new Set(
+      getAvailableWebChatGroupValues(
+        activeSession?.model,
+        allGroups,
+        modelGroupsMap,
+      ),
+    );
+
+    return allGroups.filter((option) => availableGroupValues.has(option.value));
+  }, [activeSession?.model, allGroups, modelGroupsMap]);
+
+  const availableModelOptions = useMemo(() => {
+    const availableModelValues = new Set(
+      getAvailableWebChatModelValues(
+        activeSession?.group,
+        allModels,
+        groupModelsMap,
+      ),
+    );
+
+    return allModels.filter((option) => availableModelValues.has(option.value));
+  }, [activeSession?.group, allModels, groupModelsMap]);
 
   const styleState = useMemo(() => ({ isMobile }), [isMobile]);
 
@@ -575,8 +772,10 @@ const WebChat = () => {
     if (!userId) {
       setSessions([]);
       setActiveSessionId(null);
-      setModels([]);
-      setGroups([]);
+      setAllModels([]);
+      setAllGroups([]);
+      setModelGroupsMap({});
+      setGroupModelsMap({});
       setHistoryVisible(false);
       handleEditCancel();
       return;
@@ -683,32 +882,69 @@ const WebChat = () => {
     const loadChatConfig = async () => {
       setLoadingConfig(true);
       try {
-        const [modelsResponse, groupsResponse] = await Promise.all([
-          API.get('/api/user/models'),
-          API.get('/api/user/self/groups'),
-        ]);
+        const [modelsResult, groupsResult, pricingResult] =
+          await Promise.allSettled([
+            API.get('/api/user/models'),
+            API.get('/api/user/self/groups'),
+            API.get('/api/pricing'),
+          ]);
 
         if (cancelled) {
           return;
         }
 
-        if (modelsResponse.data.success) {
-          const { modelOptions } = processModelsData(
-            modelsResponse.data.data || [],
-            '',
-          );
-          setModels(modelOptions);
+        let nextModelOptions = [];
+        let nextGroupOptions = [];
+
+        if (modelsResult.status === 'fulfilled') {
+          if (modelsResult.value.data.success) {
+            const { modelOptions } = processModelsData(
+              modelsResult.value.data.data || [],
+              '',
+            );
+            nextModelOptions = modelOptions;
+            setAllModels(modelOptions);
+          } else {
+            showError(modelsResult.value.data.message || t('加载模型失败'));
+          }
         } else {
-          showError(modelsResponse.data.message || t('加载模型失败'));
+          showError(t('加载模型失败'));
         }
 
-        if (groupsResponse.data.success) {
-          setGroups(processGroupsData(groupsResponse.data.data || {}, userGroup));
+        if (groupsResult.status === 'fulfilled') {
+          if (groupsResult.value.data.success) {
+            nextGroupOptions = processGroupsData(
+              groupsResult.value.data.data || {},
+              userGroup,
+            );
+            setAllGroups(nextGroupOptions);
+          } else {
+            showError(groupsResult.value.data.message || t('加载分组失败'));
+          }
         } else {
-          showError(groupsResponse.data.message || t('加载分组失败'));
+          showError(t('加载分组失败'));
         }
-      } catch (error) {
-        showError(t('加载聊天配置失败'));
+
+        if (
+          pricingResult.status === 'fulfilled' &&
+          pricingResult.value.data.success
+        ) {
+          const {
+            modelGroupsMap: nextModelGroupsMap,
+            groupModelsMap: nextGroupModelsMap,
+          } = buildWebChatAvailabilityMaps({
+            pricingItems: pricingResult.value.data.data || [],
+            modelOptions: nextModelOptions,
+            groupOptions: nextGroupOptions,
+            autoGroups: pricingResult.value.data.auto_groups || [],
+          });
+
+          setModelGroupsMap(nextModelGroupsMap);
+          setGroupModelsMap(nextGroupModelsMap);
+        } else {
+          setModelGroupsMap({});
+          setGroupModelsMap({});
+        }
       } finally {
         if (!cancelled) {
           setLoadingConfig(false);
@@ -724,39 +960,35 @@ const WebChat = () => {
   }, [t, userGroup, userId]);
 
   useEffect(() => {
-    if (!activeSession?.id || models.length === 0) {
-      return;
-    }
-
-    const hasSelectedModel = models.some(
-      (option) => option.value === activeSession.model,
-    );
-
-    if (!hasSelectedModel) {
-      updateSessionFields(activeSession.id, { model: models[0]?.value || '' });
-    }
-  }, [activeSession?.id, activeSession?.model, models, updateSessionFields]);
-
-  useEffect(() => {
     if (!activeSession?.id) {
       return;
     }
 
-    if (groups.length === 0) {
-      if (activeSession.group !== '') {
-        updateSessionFields(activeSession.id, { group: '' });
-      }
-      return;
-    }
+    const nextSelection = resolveWebChatSelection({
+      currentModel: activeSession.model,
+      currentGroup: activeSession.group,
+      modelOptions: allModels,
+      groupOptions: allGroups,
+      modelGroupsMap,
+      groupModelsMap,
+    });
 
-    const hasSelectedGroup = groups.some(
-      (option) => option.value === activeSession.group,
-    );
-
-    if (!hasSelectedGroup) {
-      updateSessionFields(activeSession.id, { group: groups[0]?.value || '' });
+    if (
+      nextSelection.model !== activeSession.model ||
+      nextSelection.group !== activeSession.group
+    ) {
+      updateSessionFields(activeSession.id, nextSelection);
     }
-  }, [activeSession?.group, activeSession?.id, groups, updateSessionFields]);
+  }, [
+    activeSession?.group,
+    activeSession?.id,
+    activeSession?.model,
+    allGroups,
+    allModels,
+    groupModelsMap,
+    modelGroupsMap,
+    updateSessionFields,
+  ]);
 
   useEffect(() => {
     if (activeSessionId && sessions.some((session) => session.id === activeSessionId)) {
@@ -772,14 +1004,81 @@ const WebChat = () => {
     handleEditCancel();
   }, [activeSessionId, handleEditCancel]);
 
+  const handleGroupChange = useCallback(
+    (value) => {
+      if (!activeSession?.id) {
+        return;
+      }
+
+      const availableModelsForGroup = getAvailableWebChatModelValues(
+        value,
+        allModels,
+        groupModelsMap,
+      );
+      const nextModel = availableModelsForGroup.includes(activeSession.model)
+        ? activeSession.model
+        : (availableModelsForGroup[0] ?? '');
+
+      updateSessionFields(activeSession.id, {
+        group: value,
+        model: nextModel,
+      });
+    },
+    [
+      activeSession?.id,
+      activeSession?.model,
+      allModels,
+      groupModelsMap,
+      updateSessionFields,
+    ],
+  );
+
+  const handleModelChange = useCallback(
+    (value) => {
+      if (!activeSession?.id) {
+        return;
+      }
+
+      const availableGroupsForModel = getAvailableWebChatGroupValues(
+        value,
+        allGroups,
+        modelGroupsMap,
+      );
+      const nextGroup = availableGroupsForModel.includes(activeSession.group)
+        ? activeSession.group
+        : (availableGroupsForModel[0] ?? '');
+
+      updateSessionFields(activeSession.id, {
+        model: value,
+        group: nextGroup,
+      });
+    },
+    [
+      activeSession?.group,
+      activeSession?.id,
+      allGroups,
+      modelGroupsMap,
+      updateSessionFields,
+    ],
+  );
+
   const handleCreateSession = useCallback(() => {
     if (!ensureIdleBeforeMutatingSessions()) {
       return;
     }
 
+    const nextSelection = resolveWebChatSelection({
+      currentModel: activeSession?.model || allModels[0]?.value || '',
+      currentGroup: activeSession?.group || allGroups[0]?.value || '',
+      modelOptions: allModels,
+      groupOptions: allGroups,
+      modelGroupsMap,
+      groupModelsMap,
+    });
+
     const newSession = createWebChatSession({
-      model: activeSession?.model || models[0]?.value || '',
-      group: activeSession?.group || groups[0]?.value || '',
+      model: nextSelection.model,
+      group: nextSelection.group,
     });
 
     setSessions((prevSessions) => [newSession, ...prevSessions]);
@@ -788,9 +1087,11 @@ const WebChat = () => {
   }, [
     activeSession?.group,
     activeSession?.model,
+    allGroups,
+    allModels,
     ensureIdleBeforeMutatingSessions,
-    groups,
-    models,
+    groupModelsMap,
+    modelGroupsMap,
   ]);
 
   const handleSelectSession = useCallback(
@@ -836,8 +1137,16 @@ const WebChat = () => {
                 ? remainingSessions
                 : [
                     createWebChatSession({
-                      model: activeSession?.model || models[0]?.value || '',
-                      group: activeSession?.group || groups[0]?.value || '',
+                      ...resolveWebChatSelection({
+                        currentModel:
+                          activeSession?.model || allModels[0]?.value || '',
+                        currentGroup:
+                          activeSession?.group || allGroups[0]?.value || '',
+                        modelOptions: allModels,
+                        groupOptions: allGroups,
+                        modelGroupsMap,
+                        groupModelsMap,
+                      }),
                     }),
                   ];
 
@@ -856,9 +1165,11 @@ const WebChat = () => {
       activeSession?.group,
       activeSession?.model,
       activeSessionId,
+      allGroups,
+      allModels,
       ensureIdleBeforeMutatingSessions,
-      groups,
-      models,
+      groupModelsMap,
+      modelGroupsMap,
       t,
     ],
   );
@@ -1040,11 +1351,8 @@ const WebChat = () => {
             <Select
               placeholder={t('请选择分组')}
               value={currentInputs.group}
-              optionList={groups}
-              onChange={(value) =>
-                activeSession &&
-                updateSessionFields(activeSession.id, { group: value })
-              }
+              optionList={availableGroupOptions}
+              onChange={handleGroupChange}
               disabled={!activeSession || loadingConfig}
               style={{ width: '100%' }}
               className='!rounded-xl'
@@ -1059,11 +1367,8 @@ const WebChat = () => {
             <Select
               placeholder={t('请选择模型')}
               value={currentInputs.model}
-              optionList={models}
-              onChange={(value) =>
-                activeSession &&
-                updateSessionFields(activeSession.id, { model: value })
-              }
+              optionList={availableModelOptions}
+              onChange={handleModelChange}
               disabled={!activeSession || loadingConfig}
               filter
               autoClearSearchValue={false}
