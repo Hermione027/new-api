@@ -188,6 +188,24 @@ const getAvailableWebChatModelValues = (
   return allModelValues.filter((model) => relatedModelSet.has(model));
 };
 
+const sortWebChatOptionsByAvailability = (options = [], availableValues = []) => {
+  const availableValueSet = new Set(availableValues);
+
+  return options
+    .map((option, index) => ({
+      option,
+      index,
+      isAvailable: availableValueSet.has(option?.value),
+    }))
+    .sort((left, right) => {
+      if (left.isAvailable === right.isAvailable) {
+        return left.index - right.index;
+      }
+      return left.isAvailable ? -1 : 1;
+    })
+    .map(({ option }) => option);
+};
+
 const buildWebChatAvailabilityMaps = ({
   pricingItems = [],
   modelOptions = [],
@@ -556,29 +574,49 @@ const WebChat = () => {
     [activeSession?.group, activeSession?.model],
   );
 
-  const availableGroupOptions = useMemo(() => {
-    const availableGroupValues = new Set(
+  const availableGroupValues = useMemo(
+    () =>
       getAvailableWebChatGroupValues(
         activeSession?.model,
         allGroups,
         modelGroupsMap,
       ),
-    );
+    [activeSession?.model, allGroups, modelGroupsMap],
+  );
 
-    return allGroups.filter((option) => availableGroupValues.has(option.value));
-  }, [activeSession?.model, allGroups, modelGroupsMap]);
-
-  const availableModelOptions = useMemo(() => {
-    const availableModelValues = new Set(
+  const availableModelValues = useMemo(
+    () =>
       getAvailableWebChatModelValues(
         activeSession?.group,
         allModels,
         groupModelsMap,
       ),
-    );
+    [activeSession?.group, allModels, groupModelsMap],
+  );
 
-    return allModels.filter((option) => availableModelValues.has(option.value));
-  }, [activeSession?.group, allModels, groupModelsMap]);
+  const sortedGroupOptions = useMemo(
+    () => sortWebChatOptionsByAvailability(allGroups, availableGroupValues),
+    [allGroups, availableGroupValues],
+  );
+
+  const sortedModelOptions = useMemo(
+    () => sortWebChatOptionsByAvailability(allModels, availableModelValues),
+    [allModels, availableModelValues],
+  );
+
+  const needsAutoModelSwitchHint = useMemo(() => {
+    if (!activeSession?.model || !activeSession?.group) {
+      return false;
+    }
+    return !availableGroupValues.includes(activeSession.group);
+  }, [activeSession?.group, activeSession?.model, availableGroupValues]);
+
+  const needsAutoGroupSwitchHint = useMemo(() => {
+    if (!activeSession?.model || !activeSession?.group) {
+      return false;
+    }
+    return !availableModelValues.includes(activeSession.model);
+  }, [activeSession?.group, activeSession?.model, availableModelValues]);
 
   const styleState = useMemo(() => ({ isMobile }), [isMobile]);
 
@@ -1019,6 +1057,13 @@ const WebChat = () => {
         ? activeSession.model
         : (availableModelsForGroup[0] ?? '');
 
+      if (nextModel && nextModel !== activeSession.model) {
+        Toast.info({
+          content: t('该分组下不支持当前模型，已自动切换模型'),
+          duration: 2,
+        });
+      }
+
       updateSessionFields(activeSession.id, {
         group: value,
         model: nextModel,
@@ -1029,6 +1074,7 @@ const WebChat = () => {
       activeSession?.model,
       allModels,
       groupModelsMap,
+      t,
       updateSessionFields,
     ],
   );
@@ -1048,6 +1094,13 @@ const WebChat = () => {
         ? activeSession.group
         : (availableGroupsForModel[0] ?? '');
 
+      if (nextGroup !== activeSession.group) {
+        Toast.info({
+          content: t('当前分组下不支持该模型，已自动切换分组'),
+          duration: 2,
+        });
+      }
+
       updateSessionFields(activeSession.id, {
         model: value,
         group: nextGroup,
@@ -1058,6 +1111,7 @@ const WebChat = () => {
       activeSession?.id,
       allGroups,
       modelGroupsMap,
+      t,
       updateSessionFields,
     ],
   );
@@ -1351,12 +1405,23 @@ const WebChat = () => {
             <Select
               placeholder={t('请选择分组')}
               value={currentInputs.group}
-              optionList={availableGroupOptions}
+              optionList={sortedGroupOptions}
               onChange={handleGroupChange}
               disabled={!activeSession || loadingConfig}
               style={{ width: '100%' }}
               className='!rounded-xl'
             />
+            {activeSession?.model && allGroups.length > availableGroupValues.length && (
+              <Typography.Text
+                size='small'
+                type={needsAutoModelSwitchHint ? 'warning' : 'tertiary'}
+                className='!block mt-2'
+              >
+                {needsAutoModelSwitchHint
+                  ? t('切换分组时会自动匹配该分组下可用的模型')
+                  : t('当前模型可用的分组已优先排在前面')}
+              </Typography.Text>
+            )}
           </div>
 
           <div>
@@ -1367,7 +1432,7 @@ const WebChat = () => {
             <Select
               placeholder={t('请选择模型')}
               value={currentInputs.model}
-              optionList={availableModelOptions}
+              optionList={sortedModelOptions}
               onChange={handleModelChange}
               disabled={!activeSession || loadingConfig}
               filter
@@ -1375,6 +1440,17 @@ const WebChat = () => {
               style={{ width: '100%' }}
               className='!rounded-xl'
             />
+            {activeSession?.group && allModels.length > availableModelValues.length && (
+              <Typography.Text
+                size='small'
+                type={needsAutoGroupSwitchHint ? 'warning' : 'tertiary'}
+                className='!block mt-2'
+              >
+                {needsAutoGroupSwitchHint
+                  ? t('切换模型时会自动匹配该模型可用的分组')
+                  : t('当前分组可用的模型已优先排在前面')}
+              </Typography.Text>
+            )}
           </div>
 
           <div className='rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3'>
