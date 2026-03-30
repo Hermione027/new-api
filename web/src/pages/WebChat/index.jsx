@@ -100,6 +100,7 @@ const DEFAULT_WEB_CHAT_SIDEBAR_WIDTH = 360;
 const MIN_WEB_CHAT_SIDEBAR_WIDTH = 280;
 const MAX_WEB_CHAT_SIDEBAR_WIDTH = 560;
 const MIN_WEB_CHAT_CONTENT_WIDTH = 420;
+const MOBILE_WEB_CHAT_SHEET_WIDTH = 'min(calc(100vw - 24px), 420px)';
 
 const clampWebChatSidebarWidth = (width, containerWidth = null) => {
   const numericWidth = Number(width);
@@ -1466,29 +1467,51 @@ const WebChat = () => {
 
   const sidebarContent = (
     <div className='h-full flex flex-col'>
-      <div className='flex items-center justify-between gap-3 mb-4'>
-        <div>
-          <Typography.Title heading={5} className='!mb-1'>
-            {t('AI 对话')}
-          </Typography.Title>
-          <Typography.Text type='tertiary'>
-            {t('使用当前登录账号的额度和模型权限')}
-          </Typography.Text>
+      {isMobile ? (
+        <div className='flex items-center justify-between gap-3 mb-3'>
+          <div className='min-w-0'>
+            <Typography.Text strong className='text-base'>
+              {t('会话与设置')}
+            </Typography.Text>
+            <Typography.Text type='tertiary' size='small' className='!block mt-1'>
+              {t('切换会话、分组和模型')}
+            </Typography.Text>
+          </div>
+          <Button
+            type='primary'
+            size='small'
+            icon={<Plus size={14} />}
+            onClick={handleCreateSession}
+            style={{ borderRadius: 999 }}
+          >
+            {t('新建')}
+          </Button>
         </div>
-        <Button
-          type='primary'
-          icon={<Plus size={14} />}
-          onClick={handleCreateSession}
-          style={{ borderRadius: 999 }}
-        >
-          {t('新建')}
-        </Button>
-      </div>
+      ) : (
+        <div className='flex items-center justify-between gap-3 mb-4'>
+          <div>
+            <Typography.Title heading={5} className='!mb-1'>
+              {t('AI 对话')}
+            </Typography.Title>
+            <Typography.Text type='tertiary'>
+              {t('使用当前登录账号的额度和模型权限')}
+            </Typography.Text>
+          </div>
+          <Button
+            type='primary'
+            icon={<Plus size={14} />}
+            onClick={handleCreateSession}
+            style={{ borderRadius: 999 }}
+          >
+            {t('新建')}
+          </Button>
+        </div>
+      )}
 
       <Card
         bordered={false}
         className='!rounded-2xl !mb-4'
-        bodyStyle={{ padding: 16 }}
+        bodyStyle={{ padding: isMobile ? 14 : 16 }}
       >
         <div className='space-y-4'>
           <div>
@@ -1557,7 +1580,7 @@ const WebChat = () => {
         </div>
       </Card>
 
-      <div className='flex-1 min-h-0 overflow-y-auto pr-1'>
+      <div className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? '' : 'pr-1'}`}>
         <SessionList
           sessions={sortedSessions}
           activeSessionId={activeSession?.id}
@@ -1751,7 +1774,9 @@ const WebChat = () => {
           onCancel={() => setHistoryVisible(false)}
           closeOnEsc
           title={t('聊天历史')}
-          bodyStyle={{ padding: 16 }}
+          width={isMobile ? MOBILE_WEB_CHAT_SHEET_WIDTH : 420}
+          bodyStyle={{ padding: isMobile ? 12 : 16 }}
+          className='web-chat-history-sheet'
         >
           {sidebarContent}
         </SideSheet>

@@ -1100,6 +1100,29 @@ html.dark .with-pastel-balls::before {
   font-weight: 600;
 }
 
+.web-chat-history-sheet .semi-sidesheet-header {
+  padding-bottom: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .web-chat-history-sheet .semi-sidesheet-content {
+    border-top-right-radius: 1.5rem;
+    border-bottom-right-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow:
+      0 20px 40px rgba(15, 23, 42, 0.16),
+      0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+
+  .web-chat-history-sheet .semi-sidesheet-header {
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  .web-chat-history-sheet .semi-sidesheet-body {
+    padding-top: 0 !important;
+  }
+}
+
 .pricing-search-header {
   padding: 0.5rem;
   background-color: var(--semi-color-bg-0);
