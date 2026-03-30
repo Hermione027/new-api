@@ -55,6 +55,7 @@ import dayjs from 'dayjs';
 import {
   API,
   buildApiPayload,
+  buildMessageContent,
   createLoadingAssistantMessage,
   createMessage,
   encodeToBase64,
@@ -75,7 +76,10 @@ import {
   MESSAGE_ROLES,
   MESSAGE_STATUS,
 } from '../../constants/playground.constants';
-import { OptimizedMessageActions, OptimizedMessageContent } from '../../components/playground/OptimizedComponents';
+import {
+  OptimizedMessageActions,
+  OptimizedMessageContent,
+} from '../../components/playground/OptimizedComponents';
 import CustomInputRender from '../../components/playground/CustomInputRender';
 import {
   createWebChatSession,
@@ -101,6 +105,8 @@ const MIN_WEB_CHAT_SIDEBAR_WIDTH = 280;
 const MAX_WEB_CHAT_SIDEBAR_WIDTH = 560;
 const MIN_WEB_CHAT_CONTENT_WIDTH = 420;
 const MOBILE_WEB_CHAT_SHEET_WIDTH = 'min(calc(100vw - 24px), 420px)';
+const WEB_CHAT_MAX_IMAGE_COUNT = 4;
+const WEB_CHAT_MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 
 const clampWebChatSidebarWidth = (width, containerWidth = null) => {
   const numericWidth = Number(width);
@@ -189,7 +195,10 @@ const getAvailableWebChatModelValues = (
   return allModelValues.filter((model) => relatedModelSet.has(model));
 };
 
-const sortWebChatOptionsByAvailability = (options = [], availableValues = []) => {
+const sortWebChatOptionsByAvailability = (
+  options = [],
+  availableValues = [],
+) => {
   const availableValueSet = new Set(availableValues);
 
   return options
@@ -335,7 +344,10 @@ const resolveWebChatSelection = ({
     groupOptions,
     modelGroupsMap,
   );
-  if (finalGroupsForModel.length > 0 && !finalGroupsForModel.includes(nextGroup)) {
+  if (
+    finalGroupsForModel.length > 0 &&
+    !finalGroupsForModel.includes(nextGroup)
+  ) {
     nextGroup = finalGroupsForModel[0];
   }
 
@@ -438,13 +450,7 @@ const LoginPrompt = ({ onLogin }) => {
   );
 };
 
-const SessionList = ({
-  sessions,
-  activeSessionId,
-  onSelect,
-  onDelete,
-  t,
-}) => {
+const SessionList = ({ sessions, activeSessionId, onSelect, onDelete, t }) => {
   if (sessions.length === 0) {
     return (
       <Empty
@@ -557,7 +563,9 @@ const WebChat = () => {
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [debugData, setDebugData] = useState({});
   const [activeDebugTab, setActiveDebugTab] = useState(DEBUG_TABS.REQUEST);
-  const [sidebarWidth, setSidebarWidth] = useState(getStoredWebChatSidebarWidth);
+  const [sidebarWidth, setSidebarWidth] = useState(
+    getStoredWebChatSidebarWidth,
+  );
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
   const sseSourceRef = useRef(null);
@@ -583,10 +591,15 @@ const WebChat = () => {
       model: activeSession?.model || '',
       group: activeSession?.group || '',
       stream: true,
-      imageEnabled: false,
-      imageUrls: [],
+      imageEnabled: Boolean(activeSession),
+      imageUrls: activeSession?.pendingImageUrls || [],
     }),
-    [activeSession?.group, activeSession?.model],
+    [
+      activeSession,
+      activeSession?.group,
+      activeSession?.model,
+      activeSession?.pendingImageUrls,
+    ],
   );
 
   const availableGroupValues = useMemo(
@@ -705,6 +718,73 @@ const WebChat = () => {
     [activeSessionId, setSessionMessages],
   );
 
+  const setSessionPendingImages = useCallback((sessionId, nextValue) => {
+    if (!sessionId) {
+      return;
+    }
+
+    setSessions((prevSessions) =>
+      prevSessions.map((session) => {
+        if (session.id !== sessionId) {
+          return session;
+        }
+
+        const previousImages = Array.isArray(session.pendingImageUrls)
+          ? session.pendingImageUrls
+          : [];
+        const nextImages =
+          typeof nextValue === 'function'
+            ? nextValue(previousImages)
+            : nextValue;
+
+        return {
+          ...session,
+          pendingImageUrls: Array.isArray(nextImages)
+            ? nextImages.filter(
+                (imageUrl) =>
+                  typeof imageUrl === 'string' && imageUrl.trim() !== '',
+              )
+            : [],
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+  }, []);
+
+  const appendPendingImages = useCallback(
+    (imageUrls = []) => {
+      if (!activeSession?.id || imageUrls.length === 0) {
+        return;
+      }
+
+      setSessionPendingImages(activeSession.id, (previousImages) =>
+        [...previousImages, ...imageUrls].slice(0, WEB_CHAT_MAX_IMAGE_COUNT),
+      );
+    },
+    [activeSession?.id, setSessionPendingImages],
+  );
+
+  const removePendingImage = useCallback(
+    (targetIndex) => {
+      if (!activeSession?.id) {
+        return;
+      }
+
+      setSessionPendingImages(activeSession.id, (previousImages) =>
+        previousImages.filter((_, index) => index !== targetIndex),
+      );
+    },
+    [activeSession?.id, setSessionPendingImages],
+  );
+
+  const clearPendingImages = useCallback(() => {
+    if (!activeSession?.id) {
+      return;
+    }
+
+    setSessionPendingImages(activeSession.id, []);
+  }, [activeSession?.id, setSessionPendingImages]);
+
   const { sendRequest, onStopGenerator } = useApiRequest(
     setCurrentMessages,
     setDebugData,
@@ -713,14 +793,20 @@ const WebChat = () => {
     persistCurrentMessages,
   );
 
-  const { editingMessageId, editValue, setEditValue, handleMessageEdit, handleEditSave, handleEditCancel } =
-    useMessageEdit(
-      setCurrentMessages,
-      currentInputs,
-      SIMPLE_PARAMETER_ENABLED,
-      sendRequest,
-      persistCurrentMessages,
-    );
+  const {
+    editingMessageId,
+    editValue,
+    setEditValue,
+    handleMessageEdit,
+    handleEditSave,
+    handleEditCancel,
+  } = useMessageEdit(
+    setCurrentMessages,
+    currentInputs,
+    SIMPLE_PARAMETER_ENABLED,
+    sendRequest,
+    persistCurrentMessages,
+  );
 
   const ensureIdleBeforeMutatingSessions = useCallback(() => {
     if (!isAnySessionGenerating) {
@@ -761,10 +847,7 @@ const WebChat = () => {
   const handleSidebarResizeReset = useCallback(() => {
     const { containerWidth } = getSidebarResizeBounds();
     setSidebarWidth(
-      clampWebChatSidebarWidth(
-        DEFAULT_WEB_CHAT_SIDEBAR_WIDTH,
-        containerWidth,
-      ),
+      clampWebChatSidebarWidth(DEFAULT_WEB_CHAT_SIDEBAR_WIDTH, containerWidth),
     );
   }, [getSidebarResizeBounds]);
 
@@ -822,9 +905,7 @@ const WebChat = () => {
 
     const loadedSessions = loadWebChatSessions(userId);
     const initialSessions =
-      loadedSessions.length > 0
-        ? loadedSessions
-        : [createWebChatSession()];
+      loadedSessions.length > 0 ? loadedSessions : [createWebChatSession()];
 
     setSessions(initialSessions);
     setActiveSessionId(initialSessions[0].id);
@@ -1033,7 +1114,10 @@ const WebChat = () => {
   ]);
 
   useEffect(() => {
-    if (activeSessionId && sessions.some((session) => session.id === activeSessionId)) {
+    if (
+      activeSessionId &&
+      sessions.some((session) => session.id === activeSessionId)
+    ) {
       return;
     }
 
@@ -1234,10 +1318,20 @@ const WebChat = () => {
 
   const handleMessageSend = useCallback(
     (content) => {
+      const rawContent =
+        content && typeof content === 'object' && 'content' in content
+          ? content.content
+          : content;
+      const isMessageArrayContent = Array.isArray(rawContent);
+      const draftImageUrls = (activeSession?.pendingImageUrls || []).filter(
+        (imageUrl) => typeof imageUrl === 'string' && imageUrl.trim() !== '',
+      );
       const trimmedContent =
-        typeof content === 'string' ? content.trim() : '';
+        typeof rawContent === 'string' ? rawContent.trim() : '';
+      const shouldUseDraftImages = typeof rawContent === 'string';
+      const hasDraftImages = shouldUseDraftImages && draftImageUrls.length > 0;
 
-      if (!trimmedContent) {
+      if (!trimmedContent && !isMessageArrayContent && !hasDraftImages) {
         return;
       }
 
@@ -1253,10 +1347,10 @@ const WebChat = () => {
         return;
       }
 
-      const userMessage = createMessage(
-        MESSAGE_ROLES.USER,
-        trimmedContent,
-      );
+      const userMessageContent = isMessageArrayContent
+        ? rawContent
+        : buildMessageContent(trimmedContent, draftImageUrls, hasDraftImages);
+      const userMessage = createMessage(MESSAGE_ROLES.USER, userMessageContent);
       const loadingMessage = createLoadingAssistantMessage();
 
       setCurrentMessages((prevMessages) => {
@@ -1271,9 +1365,15 @@ const WebChat = () => {
         sendRequest(payload, true);
         return [...nextMessages, loadingMessage];
       });
+
+      if (shouldUseDraftImages && draftImageUrls.length > 0) {
+        clearPendingImages();
+      }
     },
     [
+      activeSession?.pendingImageUrls,
       activeSession?.id,
+      clearPendingImages,
       currentInputs,
       sendRequest,
       setCurrentMessages,
@@ -1292,8 +1392,7 @@ const WebChat = () => {
     (messageId) => {
       setCurrentMessages((prevMessages) =>
         prevMessages.map((message) =>
-          message.id === messageId &&
-          message.role === MESSAGE_ROLES.ASSISTANT
+          message.id === messageId && message.role === MESSAGE_ROLES.ASSISTANT
             ? {
                 ...message,
                 isReasoningExpanded: !message.isReasoningExpanded,
@@ -1372,7 +1471,8 @@ const WebChat = () => {
 
   const handleClearMessages = useCallback(() => {
     setCurrentMessages([]);
-  }, [setCurrentMessages]);
+    clearPendingImages();
+  }, [clearPendingImages, setCurrentMessages]);
 
   const renderGroupSelectOption = useCallback(
     (item) => {
@@ -1426,7 +1526,9 @@ const WebChat = () => {
           <div className='web-chat-select-option-main'>
             <span className={`web-chat-option-dot is-${state}`} />
             <div className='web-chat-select-option-text'>
-              <Typography.Text strong>{item.value || item.label}</Typography.Text>
+              <Typography.Text strong>
+                {item.value || item.label}
+              </Typography.Text>
             </div>
           </div>
         </div>
@@ -1512,7 +1614,9 @@ const WebChat = () => {
         </div>
       </Card>
 
-      <div className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? '' : 'pr-1'}`}>
+      <div
+        className={`flex-1 min-h-0 overflow-y-auto ${isMobile ? '' : 'pr-1'}`}
+      >
         <SessionList
           sessions={sortedSessions}
           activeSessionId={activeSession?.id}
@@ -1535,11 +1639,16 @@ const WebChat = () => {
   return (
     <PlaygroundProvider
       value={{
-        onPasteImage: () => {},
-        imageUrls: [],
-        imageEnabled: false,
+        onPasteImage: (imageUrl) => appendPendingImages([imageUrl]),
+        onSelectImages: appendPendingImages,
+        onRemoveImage: removePendingImage,
+        onClearImages: clearPendingImages,
+        imageUrls: activeSession?.pendingImageUrls || [],
+        imageEnabled: Boolean(activeSession),
+        maxImageCount: WEB_CHAT_MAX_IMAGE_COUNT,
+        maxImageSize: WEB_CHAT_MAX_IMAGE_SIZE,
       }}
-      >
+    >
       <div
         ref={layoutRef}
         className='mt-[60px] h-[calc(100vh-64px)] w-full overflow-hidden web-chat-page-shell'
@@ -1669,7 +1778,10 @@ const WebChat = () => {
                     roleConfig={roleInfo}
                     chats={currentMessages}
                     uploadProps={{
-                      action: '',
+                      action: '#',
+                      accept: 'image/*',
+                      uploadTrigger: 'custom',
+                      beforeUpload: () => false,
                       showUploadList: false,
                     }}
                     renderInputArea={renderInputArea}

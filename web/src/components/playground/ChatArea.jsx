@@ -98,7 +98,10 @@ const ChatArea = ({
         <Chat
           ref={chatRef}
           uploadProps={{
-            action: '',
+            action: '#',
+            accept: 'image/*',
+            uploadTrigger: 'custom',
+            beforeUpload: () => false,
             showUploadList: false,
           }}
           chatBoxRenderConfig={{

@@ -135,7 +135,7 @@ export const useMessageActions = (
 
         if (targetMessage.role === 'user') {
           const newMessages = prevMessages.slice(0, messageIndex);
-          const contentToSend = getTextContent(targetMessage);
+          const contentToSend = targetMessage.content;
 
           setTimeout(() => {
             onMessageSend(contentToSend);
@@ -157,7 +157,7 @@ export const useMessageActions = (
           if (userMessageIndex >= 0) {
             const userMessage = prevMessages[userMessageIndex];
             const newMessages = prevMessages.slice(0, userMessageIndex);
-            const contentToSend = getTextContent(userMessage);
+            const contentToSend = userMessage.content;
 
             setTimeout(() => {
               onMessageSend(contentToSend);

@@ -239,8 +239,30 @@ const Playground = () => {
   function onMessageSend(content, attachment) {
     console.log('attachment: ', attachment);
 
+    const rawContent =
+      content && typeof content === 'object' && 'content' in content
+        ? content.content
+        : content;
+
+    const messageContent =
+      Array.isArray(rawContent) || typeof rawContent === 'string'
+        ? rawContent
+        : '';
+
+    const textContent =
+      typeof messageContent === 'string'
+        ? messageContent
+        : getTextContent({ content: messageContent });
+
+    if (
+      !textContent?.trim() &&
+      !(Array.isArray(messageContent) && messageContent.length > 0)
+    ) {
+      return;
+    }
+
     // 创建用户消息和加载消息
-    const userMessage = createMessage(MESSAGE_ROLES.USER, content);
+    const userMessage = createMessage(MESSAGE_ROLES.USER, messageContent);
     const loadingMessage = createLoadingAssistantMessage();
 
     // 如果是自定义请求体模式
@@ -268,16 +290,16 @@ const Playground = () => {
     }
 
     // 默认模式
-    const validImageUrls = inputs.imageUrls.filter((url) => url.trim() !== '');
-    const messageContent = buildMessageContent(
-      content,
-      validImageUrls,
-      inputs.imageEnabled,
-    );
-    const userMessageWithImages = createMessage(
-      MESSAGE_ROLES.USER,
-      messageContent,
-    );
+    const userMessageWithImages = Array.isArray(messageContent)
+      ? createMessage(MESSAGE_ROLES.USER, messageContent)
+      : createMessage(
+          MESSAGE_ROLES.USER,
+          buildMessageContent(
+            textContent,
+            inputs.imageUrls.filter((url) => url.trim() !== ''),
+            inputs.imageEnabled,
+          ),
+        );
 
     setMessage((prevMessage) => {
       const newMessages = [...prevMessage, userMessageWithImages];
@@ -294,6 +316,7 @@ const Playground = () => {
       if (inputs.imageEnabled) {
         setTimeout(() => {
           handleInputChange('imageEnabled', false);
+          handleInputChange('imageUrls', []);
         }, 100);
       }
 
@@ -450,9 +473,39 @@ const Playground = () => {
     [inputs.imageEnabled, inputs.imageUrls, handleInputChange],
   );
 
+  const handleSelectImages = useCallback(
+    (imageList = []) => {
+      if (!inputs.imageEnabled || imageList.length === 0) {
+        return;
+      }
+      handleInputChange('imageUrls', [
+        ...(inputs.imageUrls || []),
+        ...imageList,
+      ]);
+    },
+    [handleInputChange, inputs.imageEnabled, inputs.imageUrls],
+  );
+
+  const handleRemoveImage = useCallback(
+    (targetIndex) => {
+      handleInputChange(
+        'imageUrls',
+        (inputs.imageUrls || []).filter((_, index) => index !== targetIndex),
+      );
+    },
+    [handleInputChange, inputs.imageUrls],
+  );
+
+  const handleClearImages = useCallback(() => {
+    handleInputChange('imageUrls', []);
+  }, [handleInputChange]);
+
   // Playground Context 值
   const playgroundContextValue = {
     onPasteImage: handlePasteImage,
+    onSelectImages: handleSelectImages,
+    onRemoveImage: handleRemoveImage,
+    onClearImages: handleClearImages,
     imageUrls: inputs.imageUrls || [],
     imageEnabled: inputs.imageEnabled || false,
   };

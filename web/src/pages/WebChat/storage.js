@@ -1,3 +1,22 @@
+/*
+Copyright (C) 2025 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+
 const STORAGE_PREFIX = 'webchat_sessions_v1';
 const DEFAULT_CHAT_TITLE = '新对话';
 
@@ -41,7 +60,9 @@ export const deriveWebChatSessionPreview = (messages = []) => {
 };
 
 export const sortWebChatSessions = (sessions = []) =>
-  [...sessions].sort((left, right) => (right.updatedAt || 0) - (left.updatedAt || 0));
+  [...sessions].sort(
+    (left, right) => (right.updatedAt || 0) - (left.updatedAt || 0),
+  );
 
 const normalizeWebChatSession = (session = {}) => {
   const messages = Array.isArray(session.messages) ? session.messages : [];
@@ -50,12 +71,21 @@ const normalizeWebChatSession = (session = {}) => {
     : Date.now();
 
   return {
-    id: session.id || `webchat-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-    title: trimSessionTitle(session.title || deriveWebChatSessionTitle(messages)),
+    id:
+      session.id ||
+      `webchat-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+    title: trimSessionTitle(
+      session.title || deriveWebChatSessionTitle(messages),
+    ),
     model: session.model || '',
     group: session.group || '',
+    pendingImageUrls: Array.isArray(session.pendingImageUrls)
+      ? session.pendingImageUrls
+      : [],
     messages,
-    createdAt: Number.isFinite(session.createdAt) ? session.createdAt : timestamp,
+    createdAt: Number.isFinite(session.createdAt)
+      ? session.createdAt
+      : timestamp,
     updatedAt: timestamp,
   };
 };

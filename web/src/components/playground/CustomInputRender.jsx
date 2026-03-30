@@ -18,17 +18,135 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Toast } from '@douyinfe/semi-ui';
+import { Button, Toast } from '@douyinfe/semi-ui';
+import { ImagePlus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePlayground } from '../../contexts/PlaygroundContext';
 
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') {
+        resolve(result);
+        return;
+      }
+      reject(new Error('invalid_image_data_url'));
+    };
+    reader.onerror = () => {
+      reject(reader.error || new Error('image_read_failed'));
+    };
+    reader.readAsDataURL(file);
+  });
+
 const CustomInputRender = (props) => {
   const { t } = useTranslation();
-  const { onPasteImage, imageEnabled } = usePlayground();
+  const {
+    onPasteImage,
+    onSelectImages,
+    onRemoveImage,
+    onClearImages,
+    imageEnabled,
+    imageUrls = [],
+    maxImageCount = 4,
+    maxImageSize = 3 * 1024 * 1024,
+  } = usePlayground();
   const { detailProps } = props;
-  const { clearContextNode, uploadNode, inputNode, sendNode, onClick } =
-    detailProps;
+  const { clearContextNode, inputNode, sendNode, onClick } = detailProps;
   const containerRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const appendImages = useCallback(
+    async (files) => {
+      if (!imageEnabled) {
+        Toast.warning({
+          content: t('请先在设置中启用图片功能'),
+          duration: 3,
+        });
+        return;
+      }
+
+      const remainingSlots = Math.max(maxImageCount - imageUrls.length, 0);
+      if (remainingSlots <= 0) {
+        Toast.warning({
+          content: t('最多只能添加 {{count}} 张图片', { count: maxImageCount }),
+          duration: 3,
+        });
+        return;
+      }
+
+      const imageFiles = (files || []).filter(
+        (file) => file && file.type && file.type.startsWith('image/'),
+      );
+
+      if (imageFiles.length === 0) {
+        return;
+      }
+
+      const acceptedFiles = [];
+      let hasOversizedFile = false;
+
+      for (const file of imageFiles.slice(0, remainingSlots)) {
+        if (file.size > maxImageSize) {
+          hasOversizedFile = true;
+          continue;
+        }
+        acceptedFiles.push(file);
+      }
+
+      if (hasOversizedFile) {
+        Toast.warning({
+          content: t('图片大小不能超过 {{size}} MB', {
+            size: Math.floor(maxImageSize / 1024 / 1024),
+          }),
+          duration: 3,
+        });
+      }
+
+      if (acceptedFiles.length === 0) {
+        return;
+      }
+
+      try {
+        const dataUrls = await Promise.all(
+          acceptedFiles.map((file) => readFileAsDataUrl(file)),
+        );
+
+        if (typeof onSelectImages === 'function') {
+          onSelectImages(dataUrls);
+        } else if (typeof onPasteImage === 'function') {
+          dataUrls.forEach((imageUrl) => onPasteImage(imageUrl));
+        } else {
+          Toast.error({
+            content: t('无法添加图片'),
+            duration: 2,
+          });
+          return;
+        }
+
+        Toast.success({
+          content: t('已添加 {{count}} 张图片', { count: dataUrls.length }),
+          duration: 2,
+        });
+      } catch (error) {
+        console.error('Failed to read image files:', error);
+        Toast.error({
+          content: t('图片读取失败'),
+          duration: 2,
+        });
+      }
+    },
+    [
+      imageEnabled,
+      imageUrls.length,
+      maxImageCount,
+      maxImageSize,
+      onPasteImage,
+      onSelectImages,
+      t,
+    ],
+  );
 
   const handlePaste = useCallback(
     async (e) => {
@@ -43,53 +161,13 @@ const CustomInputRender = (props) => {
           const file = item.getAsFile();
 
           if (file) {
-            try {
-              if (!imageEnabled) {
-                Toast.warning({
-                  content: t('请先在设置中启用图片功能'),
-                  duration: 3,
-                });
-                return;
-              }
-
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                const base64 = event.target.result;
-
-                if (onPasteImage) {
-                  onPasteImage(base64);
-                  Toast.success({
-                    content: t('图片已添加'),
-                    duration: 2,
-                  });
-                } else {
-                  Toast.error({
-                    content: t('无法添加图片'),
-                    duration: 2,
-                  });
-                }
-              };
-              reader.onerror = () => {
-                console.error('Failed to read image file:', reader.error);
-                Toast.error({
-                  content: t('粘贴图片失败'),
-                  duration: 2,
-                });
-              };
-              reader.readAsDataURL(file);
-            } catch (error) {
-              console.error('Failed to paste image:', error);
-              Toast.error({
-                content: t('粘贴图片失败'),
-                duration: 2,
-              });
-            }
+            await appendImages([file]);
           }
           break;
         }
       }
     },
-    [onPasteImage, imageEnabled, t],
+    [appendImages],
   );
 
   useEffect(() => {
@@ -134,8 +212,90 @@ const CustomInputRender = (props) => {
     },
   });
 
+  const handleUploadClick = useCallback(
+    (event) => {
+      event.stopPropagation();
+      if (!imageEnabled) {
+        Toast.warning({
+          content: t('请先在设置中启用图片功能'),
+          duration: 3,
+        });
+        return;
+      }
+      fileInputRef.current?.click();
+    },
+    [imageEnabled, t],
+  );
+
+  const handleFileInputChange = useCallback(
+    async (event) => {
+      const files = Array.from(event.target.files || []);
+      if (files.length > 0) {
+        await appendImages(files);
+      }
+      event.target.value = '';
+    },
+    [appendImages],
+  );
+
   return (
     <div className='p-2 sm:p-4' ref={containerRef}>
+      <input
+        ref={fileInputRef}
+        type='file'
+        accept='image/*'
+        multiple
+        className='hidden'
+        onChange={handleFileInputChange}
+      />
+      {imageUrls.length > 0 && (
+        <div className='mb-3 rounded-2xl border border-slate-200 bg-white/80 px-3 py-3 shadow-sm'>
+          <div className='mb-2 flex items-center justify-between gap-2'>
+            <span className='text-xs font-medium text-slate-500'>
+              {t('已添加 {{count}} 张图片', { count: imageUrls.length })}
+            </span>
+            {typeof onClearImages === 'function' && (
+              <button
+                type='button'
+                className='text-xs text-slate-400 transition-colors hover:text-red-500'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onClearImages();
+                }}
+              >
+                {t('清空')}
+              </button>
+            )}
+          </div>
+          <div className='flex gap-2 overflow-x-auto pb-1'>
+            {imageUrls.map((imageUrl, index) => (
+              <div
+                key={`${index}-${imageUrl.slice(0, 24)}`}
+                className='relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50'
+              >
+                <img
+                  src={imageUrl}
+                  alt={t('待发送图片 {{index}}', { index: index + 1 })}
+                  className='h-full w-full object-cover'
+                />
+                {typeof onRemoveImage === 'function' && (
+                  <button
+                    type='button'
+                    className='absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onRemoveImage(index);
+                    }}
+                    aria-label={t('移除图片')}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div
         className='flex items-center gap-2 sm:gap-3 p-2 bg-gray-50 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow'
         style={{ border: '1px solid var(--semi-color-border)' }}
@@ -144,6 +304,20 @@ const CustomInputRender = (props) => {
       >
         {/* 清空对话按钮 - 左边 */}
         {styledClearNode}
+        <Button
+          theme='borderless'
+          type='tertiary'
+          icon={<ImagePlus size={16} />}
+          className='!rounded-full !bg-white hover:!bg-sky-50 !text-slate-500 hover:!text-sky-600 flex-shrink-0'
+          style={{
+            width: '32px',
+            height: '32px',
+            minWidth: '32px',
+            padding: 0,
+          }}
+          onClick={handleUploadClick}
+          aria-label={t('上传图片')}
+        />
         <div className='flex-1'>{inputNode}</div>
         {/* 发送按钮 - 右边 */}
         {styledSendNode}
