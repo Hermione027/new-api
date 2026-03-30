@@ -908,6 +908,10 @@ html.dark .with-pastel-balls::before {
   overflow: hidden;
 }
 
+.web-chat-page-shell {
+  background: transparent;
+}
+
 .web-chat-layout.semi-layout-has-sider > .web-chat-sidebar {
   min-width: 0 !important;
   overflow: hidden;
@@ -922,6 +926,45 @@ html.dark .with-pastel-balls::before {
 .web-chat-sidebar-shell {
   width: 100%;
   min-width: 0;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(var(--semi-grey-3), 0.24);
+  box-shadow:
+    0 16px 48px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.web-chat-main-card {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.08),
+    0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.web-chat-main-header {
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid rgba(var(--semi-grey-2), 0.8);
+}
+
+.web-chat-main-header-icon {
+  background: linear-gradient(135deg, #ecfeff 0%, #dbeafe 100%);
+  color: #0f766e;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.web-chat-main-header-title {
+  color: var(--semi-color-text-0) !important;
+}
+
+.web-chat-main-header-subtitle {
+  color: var(--semi-color-text-2) !important;
+}
+
+.web-chat-main-header-action {
+  color: #2563eb !important;
+}
+
+.web-chat-main-header-action:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
 }
 
 .web-chat-resize-handle {
@@ -1037,15 +1080,24 @@ html.dark .with-pastel-balls::before {
 }
 
 .web-chat-model-tag {
-  background: rgba(255, 255, 255, 0.16) !important;
-  border: 1px solid rgba(255, 255, 255, 0.24) !important;
-  color: #eff6ff !important;
+  background: #dbeafe !important;
+  border: 1px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+  font-weight: 600;
 }
 
 .web-chat-group-tag {
-  background: rgba(236, 253, 245, 0.2) !important;
-  border: 1px solid rgba(167, 243, 208, 0.32) !important;
-  color: #ecfdf5 !important;
+  background: #d1fae5 !important;
+  border: 1px solid #86efac !important;
+  color: #047857 !important;
+  font-weight: 600;
+}
+
+.web-chat-session-model-tag {
+  background: #e0f2fe !important;
+  border: 1px solid #7dd3fc !important;
+  color: #0369a1 !important;
+  font-weight: 600;
 }
 
 .pricing-search-header {

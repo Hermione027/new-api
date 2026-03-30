@@ -486,7 +486,11 @@ const SessionList = ({
                     {session.title || t('新对话')}
                   </Typography.Text>
                   {session.model && (
-                    <Tag color='cyan' size='small'>
+                    <Tag
+                      color='cyan'
+                      size='small'
+                      className='web-chat-session-model-tag'
+                    >
                       {session.model}
                     </Tag>
                   )}
@@ -1567,13 +1571,7 @@ const WebChat = () => {
 
   if (!currentUser) {
     return (
-      <div
-        className='mt-[60px] h-[calc(100vh-64px)]'
-        style={{
-          background:
-            'radial-gradient(circle at top left, rgba(16, 185, 129, 0.10), transparent 28%), radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.10), transparent 32%)',
-        }}
-      >
+      <div className='mt-[60px] h-[calc(100vh-64px)] web-chat-page-shell'>
         <LoginPrompt onLogin={handleLogin} />
       </div>
     );
@@ -1586,14 +1584,10 @@ const WebChat = () => {
         imageUrls: [],
         imageEnabled: false,
       }}
-    >
+      >
       <div
         ref={layoutRef}
-        className='mt-[60px] h-[calc(100vh-64px)] w-full overflow-hidden'
-        style={{
-          background:
-            'radial-gradient(circle at top left, rgba(16, 185, 129, 0.10), transparent 28%), radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.10), transparent 32%)',
-        }}
+        className='mt-[60px] h-[calc(100vh-64px)] w-full overflow-hidden web-chat-page-shell'
       >
         <Layout className='web-chat-layout h-full w-full bg-transparent overflow-hidden'>
           {!isMobile && (
@@ -1609,7 +1603,7 @@ const WebChat = () => {
                 flex: `0 0 ${sidebarWidth}px`,
               }}
             >
-              <div className='web-chat-sidebar-shell h-full rounded-3xl border border-white/60 bg-white/80 backdrop-blur-xl shadow-lg p-4 overflow-hidden'>
+              <div className='web-chat-sidebar-shell h-full rounded-3xl p-4 overflow-hidden'>
                 {sidebarContent}
               </div>
             </Layout.Sider>
@@ -1644,7 +1638,7 @@ const WebChat = () => {
             ) : (
               <Card
                 bordered={false}
-                className='h-full w-full min-w-0 !rounded-3xl overflow-hidden shadow-xl'
+                className='web-chat-main-card h-full w-full min-w-0 !rounded-3xl overflow-hidden'
                 bodyStyle={{
                   padding: 0,
                   height: '100%',
@@ -1653,15 +1647,15 @@ const WebChat = () => {
                   overflow: 'hidden',
                 }}
               >
-                <div className='px-4 sm:px-6 py-4 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 flex items-center justify-between gap-3'>
+                <div className='web-chat-main-header px-4 sm:px-6 py-4 flex items-center justify-between gap-3'>
                   <div className='flex items-center gap-3 min-w-0'>
-                    <div className='w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0'>
-                      <MessageSquare size={20} className='text-white' />
+                    <div className='web-chat-main-header-icon w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0'>
+                      <MessageSquare size={20} />
                     </div>
                     <div className='min-w-0'>
                       <Typography.Title
                         heading={5}
-                        className='!text-white !mb-0'
+                        className='web-chat-main-header-title !mb-0'
                       >
                         {activeSession.title || t('新对话')}
                       </Typography.Title>
@@ -1675,7 +1669,7 @@ const WebChat = () => {
                             {currentInputs.model}
                           </Tag>
                         ) : (
-                          <Typography.Text className='!text-white/80 text-sm'>
+                          <Typography.Text className='web-chat-main-header-subtitle text-sm'>
                             {t('请选择模型开始对话')}
                           </Typography.Text>
                         )}
@@ -1699,7 +1693,7 @@ const WebChat = () => {
                         type='primary'
                         icon={<History size={16} />}
                         onClick={() => setHistoryVisible(true)}
-                        className='!rounded-full !text-white hover:!bg-white/10'
+                        className='web-chat-main-header-action !rounded-full'
                       />
                     )}
                     <Button
@@ -1707,7 +1701,7 @@ const WebChat = () => {
                       type='primary'
                       icon={<Plus size={16} />}
                       onClick={handleCreateSession}
-                      className='!rounded-full !text-white hover:!bg-white/10'
+                      className='web-chat-main-header-action !rounded-full'
                     >
                       {!isMobile && t('新建会话')}
                     </Button>
