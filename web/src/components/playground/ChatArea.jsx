@@ -97,6 +97,10 @@ const ChatArea = ({
       <div className='flex-1 overflow-hidden'>
         <Chat
           ref={chatRef}
+          uploadProps={{
+            action: '',
+            showUploadList: false,
+          }}
           chatBoxRenderConfig={{
             renderChatBoxContent: renderCustomChatContent,
             renderChatBoxAction: renderChatBoxAction,

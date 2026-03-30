@@ -55,6 +55,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
 const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const WebChat = lazy(() => import('./pages/WebChat'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -332,6 +333,14 @@ function App() {
                 <Pricing />
               </Suspense>
             )
+          }
+        />
+        <Route
+          path='/chat'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <WebChat />
+            </Suspense>
           }
         />
         <Route
