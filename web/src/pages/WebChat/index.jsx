@@ -206,6 +206,16 @@ const sortWebChatOptionsByAvailability = (options = [], availableValues = []) =>
     .map(({ option }) => option);
 };
 
+const getWebChatOptionState = (value, currentValue, availableValues = []) => {
+  if (value === currentValue) {
+    return 'active';
+  }
+  if (availableValues.includes(value)) {
+    return 'compatible';
+  }
+  return 'linked';
+};
+
 const buildWebChatAvailabilityMaps = ({
   pricingItems = [],
   modelOptions = [],
@@ -1370,6 +1380,86 @@ const WebChat = () => {
     setCurrentMessages([]);
   }, [setCurrentMessages]);
 
+  const renderGroupSelectOption = useCallback(
+    (item) => {
+      const state = getWebChatOptionState(
+        item.value,
+        currentInputs.group,
+        availableGroupValues,
+      );
+      const title = item.value || item.label;
+      const subtitle =
+        item.value && item.fullLabel && item.fullLabel !== item.value
+          ? item.fullLabel
+          : null;
+      const statusText =
+        state === 'active'
+          ? t('当前')
+          : state === 'compatible'
+            ? t('可直用')
+            : t('会联动');
+
+      return (
+        <div
+          className={`web-chat-select-option is-${state}`}
+          onClick={item.onClick}
+          onMouseEnter={item.onMouseEnter}
+        >
+          <div className='web-chat-select-option-main'>
+            <span className={`web-chat-option-dot is-${state}`} />
+            <div className='web-chat-select-option-text'>
+              <Typography.Text strong>{title}</Typography.Text>
+              {subtitle ? (
+                <Typography.Text type='tertiary' size='small'>
+                  {subtitle}
+                </Typography.Text>
+              ) : null}
+            </div>
+          </div>
+          <span className={`web-chat-option-status is-${state}`}>
+            {statusText}
+          </span>
+        </div>
+      );
+    },
+    [availableGroupValues, currentInputs.group, t],
+  );
+
+  const renderModelSelectOption = useCallback(
+    (item) => {
+      const state = getWebChatOptionState(
+        item.value,
+        currentInputs.model,
+        availableModelValues,
+      );
+      const statusText =
+        state === 'active'
+          ? t('当前')
+          : state === 'compatible'
+            ? t('可直用')
+            : t('会联动');
+
+      return (
+        <div
+          className={`web-chat-select-option is-${state}`}
+          onClick={item.onClick}
+          onMouseEnter={item.onMouseEnter}
+        >
+          <div className='web-chat-select-option-main'>
+            <span className={`web-chat-option-dot is-${state}`} />
+            <div className='web-chat-select-option-text'>
+              <Typography.Text strong>{item.value || item.label}</Typography.Text>
+            </div>
+          </div>
+          <span className={`web-chat-option-status is-${state}`}>
+            {statusText}
+          </span>
+        </div>
+      );
+    },
+    [availableModelValues, currentInputs.model, t],
+  );
+
   const sidebarContent = (
     <div className='h-full flex flex-col'>
       <div className='flex items-center justify-between gap-3 mb-4'>
@@ -1407,6 +1497,7 @@ const WebChat = () => {
               value={currentInputs.group}
               optionList={sortedGroupOptions}
               onChange={handleGroupChange}
+              renderOptionItem={renderGroupSelectOption}
               disabled={!activeSession || loadingConfig}
               style={{ width: '100%' }}
               className='!rounded-xl'
@@ -1434,6 +1525,7 @@ const WebChat = () => {
               value={currentInputs.model}
               optionList={sortedModelOptions}
               onChange={handleModelChange}
+              renderOptionItem={renderModelSelectOption}
               disabled={!activeSession || loadingConfig}
               filter
               autoClearSearchValue={false}
@@ -1574,11 +1666,25 @@ const WebChat = () => {
                         {activeSession.title || t('新对话')}
                       </Typography.Title>
                       <div className='flex flex-wrap items-center gap-2 mt-1'>
-                        <Typography.Text className='!text-white/80 text-sm'>
-                          {currentInputs.model || t('请选择模型开始对话')}
-                        </Typography.Text>
+                        {currentInputs.model ? (
+                          <Tag
+                            color='blue'
+                            size='small'
+                            className='web-chat-model-tag'
+                          >
+                            {currentInputs.model}
+                          </Tag>
+                        ) : (
+                          <Typography.Text className='!text-white/80 text-sm'>
+                            {t('请选择模型开始对话')}
+                          </Typography.Text>
+                        )}
                         {currentInputs.group && (
-                          <Tag color='white' size='small'>
+                          <Tag
+                            color='green'
+                            size='small'
+                            className='web-chat-group-tag'
+                          >
                             {currentInputs.group}
                           </Tag>
                         )}

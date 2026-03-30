@@ -957,6 +957,97 @@ html.dark .with-pastel-balls::before {
   box-shadow: 0 0 0 3px rgba(var(--semi-cyan-5), 0.12);
 }
 
+.web-chat-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.9rem;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.web-chat-select-option:hover {
+  background: rgba(var(--semi-grey-1), 0.7);
+}
+
+.web-chat-select-option-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.web-chat-select-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.web-chat-option-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  flex: 0 0 0.7rem;
+  margin-top: 0.25rem;
+  box-shadow: 0 0 0 3px rgba(var(--semi-grey-1), 0.9);
+}
+
+.web-chat-option-dot.is-active {
+  background: rgba(var(--semi-cyan-5), 1);
+}
+
+.web-chat-option-dot.is-compatible {
+  background: rgba(var(--semi-green-5), 1);
+}
+
+.web-chat-option-dot.is-linked {
+  background: rgba(var(--semi-amber-5), 1);
+}
+
+.web-chat-option-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.web-chat-option-status.is-active {
+  color: rgba(var(--semi-cyan-7), 1);
+  background: rgba(var(--semi-cyan-1), 1);
+}
+
+.web-chat-option-status.is-compatible {
+  color: rgba(var(--semi-green-7), 1);
+  background: rgba(var(--semi-green-1), 1);
+}
+
+.web-chat-option-status.is-linked {
+  color: rgba(var(--semi-amber-7), 1);
+  background: rgba(var(--semi-amber-1), 1);
+}
+
+.web-chat-model-tag {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  color: #eff6ff !important;
+}
+
+.web-chat-group-tag {
+  background: rgba(236, 253, 245, 0.2) !important;
+  border: 1px solid rgba(167, 243, 208, 0.32) !important;
+  color: #ecfdf5 !important;
+}
+
 .pricing-search-header {
   padding: 0.5rem;
   background-color: var(--semi-color-bg-0);
