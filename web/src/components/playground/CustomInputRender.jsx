@@ -183,7 +183,7 @@ const CustomInputRender = (props) => {
   // 清空按钮
   const styledClearNode = clearContextNode
     ? React.cloneElement(clearContextNode, {
-        className: `!rounded-full !bg-gray-100 hover:!bg-red-500 hover:!text-white flex-shrink-0 transition-all ${clearContextNode.props.className || ''}`,
+        className: `!rounded-full !bg-gray-100 hover:!bg-red-500 hover:!text-white dark:!bg-white/10 dark:hover:!bg-red-500 flex-shrink-0 transition-all ${clearContextNode.props.className || ''}`,
         style: {
           ...clearContextNode.props.style,
           width: '32px',
@@ -249,15 +249,15 @@ const CustomInputRender = (props) => {
         onChange={handleFileInputChange}
       />
       {imageUrls.length > 0 && (
-        <div className='mb-3 rounded-2xl border border-slate-200 bg-white/80 px-3 py-3 shadow-sm'>
+        <div className='mb-3 rounded-2xl border border-slate-200 bg-white/80 px-3 py-3 shadow-sm dark:border-white/10 dark:bg-white/5'>
           <div className='mb-2 flex items-center justify-between gap-2'>
-            <span className='text-xs font-medium text-slate-500'>
+            <span className='text-xs font-medium text-slate-500 dark:text-slate-300'>
               {t('已添加 {{count}} 张图片', { count: imageUrls.length })}
             </span>
             {typeof onClearImages === 'function' && (
               <button
                 type='button'
-                className='text-xs text-slate-400 transition-colors hover:text-red-500'
+                className='text-xs text-slate-400 transition-colors hover:text-red-500 dark:text-slate-400 dark:hover:text-red-300'
                 onClick={(event) => {
                   event.stopPropagation();
                   onClearImages();
@@ -271,7 +271,7 @@ const CustomInputRender = (props) => {
             {imageUrls.map((imageUrl, index) => (
               <div
                 key={`${index}-${imageUrl.slice(0, 24)}`}
-                className='relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50'
+                className='relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/10'
               >
                 <img
                   src={imageUrl}
@@ -297,7 +297,7 @@ const CustomInputRender = (props) => {
         </div>
       )}
       <div
-        className='flex items-center gap-2 sm:gap-3 p-2 bg-gray-50 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow'
+        className='flex items-center gap-2 sm:gap-3 rounded-xl bg-gray-50 p-2 shadow-sm transition-shadow hover:shadow-md dark:bg-slate-800/70 sm:rounded-2xl'
         style={{ border: '1px solid var(--semi-color-border)' }}
         onClick={onClick}
         title={t('支持 Ctrl+V 粘贴图片')}
@@ -308,7 +308,7 @@ const CustomInputRender = (props) => {
           theme='borderless'
           type='tertiary'
           icon={<ImagePlus size={16} />}
-          className='!rounded-full !bg-white hover:!bg-sky-50 !text-slate-500 hover:!text-sky-600 flex-shrink-0'
+          className='!rounded-full !bg-white !text-slate-500 hover:!bg-sky-50 hover:!text-sky-600 dark:!bg-white/10 dark:!text-slate-200 dark:hover:!bg-sky-500/15 dark:hover:!text-sky-300 flex-shrink-0'
           style={{
             width: '32px',
             height: '32px',

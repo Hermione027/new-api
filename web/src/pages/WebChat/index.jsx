@@ -475,8 +475,8 @@ const SessionList = ({ sessions, activeSessionId, onSelect, onDelete, t }) => {
             onClick={() => onSelect(session.id)}
             className={`w-full text-left rounded-2xl border px-4 py-3 transition-all ${
               isActive
-                ? 'border-cyan-400 bg-cyan-50 shadow-sm'
-                : 'border-[var(--semi-color-border)] bg-white hover:border-cyan-300 hover:bg-slate-50'
+                ? 'border-cyan-400 bg-cyan-50 shadow-sm dark:border-cyan-400/60 dark:bg-cyan-500/12'
+                : 'border-[var(--semi-color-border)] bg-white hover:border-cyan-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:border-cyan-400/40 dark:hover:bg-white/10'
             }`}
           >
             <div className='flex items-start gap-3'>
@@ -533,7 +533,7 @@ const SessionList = ({ sessions, activeSessionId, onSelect, onDelete, t }) => {
                   event.stopPropagation();
                   onDelete(session.id);
                 }}
-                className='!rounded-full !text-slate-400 hover:!text-red-600 hover:!bg-red-50'
+                className='!rounded-full !text-slate-400 hover:!text-red-600 hover:!bg-red-50 dark:!text-slate-500 dark:hover:!text-red-300 dark:hover:!bg-red-500/10'
                 aria-label={t('删除会话')}
               />
             </div>

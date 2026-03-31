@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>🥕 API 文档</title>
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
 </head>
@@ -10,9 +13,11 @@
   <div id="app">加载中...</div>
 
   <script>
+    const docsCacheBuster = Date.now()
+
     window.$docsify = {
       name: '🥕 API 文档',
-      homepage: 'client-config.md',
+      homepage: `client-config.md?v=${docsCacheBuster}`,
       loadSidebar: false,
       subMaxLevel: 2
     }
