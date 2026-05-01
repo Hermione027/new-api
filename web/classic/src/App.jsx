@@ -55,7 +55,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
 const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const WebChat = lazy(() => import('./pages/WebChat'));
+const WebChat = lazy(() => import('./pages/Playground'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
