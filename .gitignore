@@ -10,7 +10,14 @@ build
 logs
 runtime/
 web/runtime/
+web/default/dist
+web/classic/dist
+web/node_modules
 web/dist
+docs/站点教程/node_modules/
+docs/站点教程/.vitepress/.temp/
+docs/站点教程/.vitepress/cache/
+docs/站点教程/.vitepress/dist/
 .env
 one-api
 new-api
@@ -21,9 +28,9 @@ tiktoken_cache
 .gocache
 .gomodcache/
 .cache
-web/bun.lock
 plans
 .claude
+.cursor
 
 electron/node_modules
 electron/dist
