@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -319,6 +320,25 @@ func usageSemanticFromUsage(relayInfo *relaycommon.RelayInfo, usage *dto.Usage) 
 	return "openai"
 }
 
+// isEmptyBillableTextRelay 判断该请求是否为"文本生成类"请求，即补全 tokens 为 0 时
+// 可视为空回复并免费的请求类型。embedding/rerank/图片/音频/moderation 等补全恒为 0
+// 的请求不在此列，避免被误判为空回复而免费。
+func isEmptyBillableTextRelay(relayInfo *relaycommon.RelayInfo) bool {
+	if relayInfo == nil {
+		return false
+	}
+	switch relayInfo.RelayMode {
+	case relayconstant.RelayModeChatCompletions,
+		relayconstant.RelayModeCompletions,
+		relayconstant.RelayModeResponses,
+		relayconstant.RelayModeResponsesCompact,
+		relayconstant.RelayModeGemini:
+		return true
+	}
+	// Claude messages 的 RelayMode 可能为 Unknown，按最终请求格式补充判断
+	return relayInfo.GetFinalRequestRelayFormat() == types.RelayFormatClaude
+}
+
 func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent []string) {
 	originUsage := usage
 	if usage == nil {
@@ -362,9 +382,21 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		extraContent = append(extraContent, fmt.Sprintf("Image Generation Call 花费 %s", decimal.NewFromFloat(summary.ImageGenerationCallPrice).Mul(decimal.NewFromFloat(summary.GroupRatio)).Mul(decimal.NewFromFloat(common.QuotaPerUnit)).String()))
 	}
 
+	// 空回复不计费：文本生成类请求若上游返回了用量（prompt > 0）但补全 tokens 为 0，
+	// 视为空回复，置零本次扣费并通过 SettleBilling 全额返还预扣额度。
+	emptyResponseNotBilling := operation_setting.GetGeneralSetting().EmptyResponseNotBilling &&
+		isEmptyBillableTextRelay(relayInfo) &&
+		summary.PromptTokens > 0 && summary.CompletionTokens == 0
+	if emptyResponseNotBilling {
+		summary.Quota = 0
+	}
+
 	if summary.TotalTokens == 0 {
 		extraContent = append(extraContent, "上游没有返回计费信息，无法扣费（可能是上游超时）")
 		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, summary.ModelName, relayInfo.FinalPreConsumedQuota))
+	} else if emptyResponseNotBilling {
+		extraContent = append(extraContent, "空回复不计费（补全 tokens 为 0）")
+		logger.LogInfo(ctx, fmt.Sprintf("empty response not billing, userId %d, channelId %d, tokenId %d, model %s, prompt tokens %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, summary.ModelName, summary.PromptTokens))
 	} else {
 		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, summary.Quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, summary.Quota)

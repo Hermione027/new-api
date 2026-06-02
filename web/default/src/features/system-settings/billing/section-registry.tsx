@@ -64,6 +64,8 @@ const BILLING_SECTIONS = [
           TopUpLink: settings.TopUpLink,
           general_setting: {
             docs_link: settings['general_setting.docs_link'],
+            empty_response_not_billing:
+              settings['general_setting.empty_response_not_billing'],
           },
           quota_setting: {
             enable_free_model_pre_consume:

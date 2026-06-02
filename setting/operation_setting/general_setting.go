@@ -20,6 +20,10 @@ type GeneralSetting struct {
 	CustomCurrencySymbol string `json:"custom_currency_symbol"`
 	// 自定义货币与美元汇率（1 USD = X Custom）
 	CustomCurrencyExchangeRate float64 `json:"custom_currency_exchange_rate"`
+	// 空回复不计费：文本生成类请求若上游返回了用量但补全 tokens 为 0（空回复），
+	// 不向用户扣费并全额返还预扣额度。仅作用于 chat/completions、responses、claude、gemini 等
+	// 文本生成请求，embedding/rerank/图片等补全恒为 0 的请求不受影响。
+	EmptyResponseNotBilling bool `json:"empty_response_not_billing"`
 }
 
 // 默认配置
@@ -30,6 +34,7 @@ var generalSetting = GeneralSetting{
 	QuotaDisplayType:           QuotaDisplayTypeUSD,
 	CustomCurrencySymbol:       "¤",
 	CustomCurrencyExchangeRate: 1.0,
+	EmptyResponseNotBilling:    true,
 }
 
 func init() {

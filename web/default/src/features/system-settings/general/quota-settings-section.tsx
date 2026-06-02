@@ -55,6 +55,7 @@ const quotaSchema = z.object({
   TopUpLink: z.string(),
   general_setting: z.object({
     docs_link: z.string(),
+    empty_response_not_billing: z.boolean(),
   }),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -229,6 +230,32 @@ export function QuotaSettingsSection({
                       <FormDescription>
                         {t(
                           'When enabled, zero-cost models also pre-consume quota before final settlement.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={updateOption.isPending}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+            </SettingsFormGridItem>
+
+            <SettingsFormGridItem span='full'>
+              <FormField
+                control={form.control}
+                name='general_setting.empty_response_not_billing'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>{t('Do Not Bill Empty Responses')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'When enabled, text generation requests (chat, responses, Claude, Gemini) that return usage but zero completion tokens are not billed, and the pre-consumed quota is fully refunded. Embedding/rerank/image requests are unaffected.'
                         )}
                       </FormDescription>
                     </SettingsSwitchContent>
